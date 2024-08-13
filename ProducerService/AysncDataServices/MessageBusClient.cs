@@ -21,7 +21,6 @@ namespace ProducerService.AysncDataServices
                 _connection = factory.CreateConnection();
                 _channel = _connection.CreateModel();
 
-                // _channel.ExchangeDeclare(exchange: "trigger", type: ExchangeType.Fanout);
                 _channel.ExchangeDeclare(exchange: "trigger", type: ExchangeType.Direct, durable: true);
 
                 _connection.ConnectionShutdown += RabbitMQ_ConnectionShutdown;

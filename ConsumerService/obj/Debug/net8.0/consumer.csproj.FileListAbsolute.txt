@@ -70,3 +70,4 @@
 /Users/batuhanbayraktar/git/geoCoding/ConsumerService/obj/Debug/net8.0/consumer.genruntimeconfig.cache
 /Users/batuhanbayraktar/git/geoCoding/ConsumerService/obj/Debug/net8.0/ref/consumer.dll
 /Users/batuhanbayraktar/git/geoCoding/ConsumerService/bin/Debug/net8.0/Newtonsoft.Json.dll
+/Users/batuhanbayraktar/git/geoCoding/ConsumerService/obj/Debug/net8.0/consumer.sourcelink.json

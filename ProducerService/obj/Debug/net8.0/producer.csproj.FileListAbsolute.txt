@@ -34,3 +34,4 @@
 /Users/batuhanbayraktar/git/geoCoding/ProducerService/obj/Debug/net8.0/producer.pdb
 /Users/batuhanbayraktar/git/geoCoding/ProducerService/obj/Debug/net8.0/producer.genruntimeconfig.cache
 /Users/batuhanbayraktar/git/geoCoding/ProducerService/obj/Debug/net8.0/ref/producer.dll
+/Users/batuhanbayraktar/git/geoCoding/ProducerService/obj/Debug/net8.0/producer.sourcelink.json

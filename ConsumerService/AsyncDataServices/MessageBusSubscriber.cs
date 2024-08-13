@@ -12,6 +12,8 @@ namespace ConsumerService.AsyncDataServices
         private IConnection _connection;
         private IModel _channel;
         private string _queueName;
+        private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(5);
+
 
         public MessageBusSubscriber(IConfiguration configuration, IEventProcessor eventProcessor)
         {
@@ -49,13 +51,20 @@ namespace ConsumerService.AsyncDataServices
 
                 var body = ea.Body;
                 var notificationMessage = Encoding.UTF8.GetString(body.ToArray());
-
-                _eventProcessor.ProcessEvent(notificationMessage);
+                
+                _semaphore.Wait();
+                ThreadPool.QueueUserWorkItem(ProcessEventt, notificationMessage);
             };
 
             _channel.BasicConsume(queue: _queueName, autoAck: true, consumer: consumer);
 
             return Task.CompletedTask;
+        }
+
+        private void ProcessEventt(object notificationMessage)
+        {
+            _eventProcessor.ProcessEvent(notificationMessage.ToString());
+            _semaphore.Release();
         }
 
         private void RabbitMQ_ConnectionShutdown(object sender, ShutdownEventArgs e)
