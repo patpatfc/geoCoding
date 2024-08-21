@@ -1,5 +1,7 @@
 using System.Text;
 using ConsumerService.EventProcessing;
+using ConsumerService.Models;
+using ConsumerService.Threads;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 
@@ -9,17 +11,20 @@ namespace ConsumerService.AsyncDataServices
     {
         private readonly IConfiguration _configuration;
         private readonly IEventProcessor _eventProcessor;
+        private readonly RequestLimitService _requestLimitService;
         private IConnection _connection;
         private IModel _channel;
         private string _queueName;
-        private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(5);
+        private List<ProcessEventThread> _processEventThreads = new List<ProcessEventThread>();
+        private List<Thread> _threads = new List<Thread>();
 
-
-        public MessageBusSubscriber(IConfiguration configuration, IEventProcessor eventProcessor)
+        public MessageBusSubscriber(IConfiguration configuration, IEventProcessor eventProcessor, RequestLimitService requestLimitService)
         {
             _configuration = configuration;
             _eventProcessor = eventProcessor;
+            _requestLimitService = requestLimitService;
             InitializeRabbitMQ();
+            InitializeProcessEventThreads(3);
         }
 
         private void InitializeRabbitMQ() 
@@ -29,7 +34,7 @@ namespace ConsumerService.AsyncDataServices
             _connection = factory.CreateConnection();
             _channel = _connection.CreateModel();
             // Actively declare a server-named exclusive, autodelete, non-durable queue.
-            _queueName = _channel.QueueDeclare("test", false, false, true).QueueName;
+            _queueName = _channel.QueueDeclare("test", true, false, false).QueueName;
             _channel.QueueBind(queue: _queueName,
                 exchange: "trigger",
                 routingKey: "test");
@@ -37,6 +42,19 @@ namespace ConsumerService.AsyncDataServices
             Console.WriteLine("--> Listening on the Message Bus...");
 
             _connection.ConnectionShutdown += RabbitMQ_ConnectionShutdown;
+        }
+
+        private void InitializeProcessEventThreads(int numOfThreads)
+        {
+            for (int i = 0; i < numOfThreads; i++)
+            {
+                ProcessEventThread processEventThread = new ProcessEventThread(_channel, _eventProcessor, _requestLimitService, i);
+                Thread thread = new Thread(() => processEventThread.ProcessEvent());
+                thread.Start();
+                _processEventThreads.Add(processEventThread);
+                _threads.Add(thread);
+            }
+            Console.WriteLine("--> Initialized Process Event Threads...");
         }
 
         protected override Task ExecuteAsync(CancellationToken stoppingToken)
@@ -47,29 +65,28 @@ namespace ConsumerService.AsyncDataServices
 
             consumer.Received += (ModuleHandle, ea) =>
             {
-                Console.WriteLine("--> Event Received");
+                // Console.WriteLine("--> Event Received");
 
-                var body = ea.Body;
-                var notificationMessage = Encoding.UTF8.GetString(body.ToArray());
-                
-                _semaphore.Wait();
-                ThreadPool.QueueUserWorkItem(ProcessEventt, notificationMessage);
+                int min = _processEventThreads[0].GetQueueLength();
+                for (int i = 1; i < _processEventThreads.Count; i++)
+                {
+                    if (_processEventThreads[i].GetQueueLength() < _processEventThreads[min].GetQueueLength())
+                        min = i;
+                }
+                _processEventThreads[min].Queue(new Message{Body=ea.Body, DeliveryTag=ea.DeliveryTag});
             };
 
-            _channel.BasicConsume(queue: _queueName, autoAck: true, consumer: consumer);
+            _channel.BasicConsume(queue: _queueName, autoAck: false, consumer: consumer);
 
             return Task.CompletedTask;
         }
 
-        private void ProcessEventt(object notificationMessage)
-        {
-            _eventProcessor.ProcessEvent(notificationMessage.ToString());
-            _semaphore.Release();
-        }
-
         private void RabbitMQ_ConnectionShutdown(object sender, ShutdownEventArgs e)
         {
+            _processEventThreads.ForEach(t => t.KillThread());
+            _threads.ForEach(t => t.Abort());
             Console.WriteLine("--> Connection shutdown");
+
         }
 
         public override void Dispose()

@@ -8,6 +8,7 @@ namespace ProducerService.AysncDataServices
     {
         private Timer _timer;
         private readonly IMessageBusClient _messageBusClient;
+        int count = 0;
 
         public ProducerServicet(IMessageBusClient messageBusClient)
         {
@@ -16,16 +17,18 @@ namespace ProducerService.AysncDataServices
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            _timer = new Timer(PublishMessage, null, TimeSpan.Zero, TimeSpan.FromSeconds(.001));
+            _timer = new Timer(PublishMessage, null, TimeSpan.Zero, TimeSpan.FromSeconds(.1));
             return Task.CompletedTask;
         }
 
         private void PublishMessage(object state)
         {
+
+            Console.WriteLine($"--> Produced message {count++}");
             var platformPublishedDto = new Dtos.LocationPublishDto
             {
                 // generate random double longitute (+180 to -180) and latitude (+90 to -90) with 6 decimals
-                longitute = Math.Round(new Random().NextDouble() * 360 - 180, 6),
+                longitute = count, // Math.Round(new Random().NextDouble() * 360 - 180, 6),
                 latitude = Math.Round(new Random().NextDouble() * 180 - 90, 6),
                 Event = "Location_Published",
             };

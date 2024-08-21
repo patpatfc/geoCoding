@@ -18,10 +18,11 @@ namespace ProducerService.AysncDataServices
 
             try
             {
-                _connection = factory.CreateConnection();
+                _connection = factory.CreateConnection("rabbit");
                 _channel = _connection.CreateModel();
 
-                _channel.ExchangeDeclare(exchange: "trigger", type: ExchangeType.Direct, durable: true);
+                _channel.ExchangeDeclare(exchange: "trigger", type: ExchangeType.Fanout, durable: true);
+                // _channel.ExchangeDeclare(exchange: "trigger", type: ExchangeType.Direct, durable: true);
 
                 _connection.ConnectionShutdown += RabbitMQ_ConnectionShutdown;
 
@@ -49,7 +50,7 @@ namespace ProducerService.AysncDataServices
         private void SendMessage(string message)
         {
             var body = Encoding.UTF8.GetBytes(message);
-            _channel.BasicPublish(exchange: "trigger", routingKey: "test", basicProperties: null, body: body);
+            _channel.BasicPublish(exchange: "trigger", routingKey: "", basicProperties: null, body: body);
             Console.WriteLine($"--> Message sent: {message}");
         }
 

@@ -1,5 +1,6 @@
 using ConsumerService.EventProcessing;
 using ConsumerService.AsyncDataServices;
+using ConsumerService.Threads;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +12,7 @@ builder.Services.AddControllers();
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 builder.Services.AddTransient<IEventProcessor, EventProcessor>();
 builder.Services.AddHostedService<MessageBusSubscriber>();
+builder.Services.AddSingleton<RequestLimitService>();
 
 var app = builder.Build();
 

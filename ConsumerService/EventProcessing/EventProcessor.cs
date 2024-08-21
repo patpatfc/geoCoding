@@ -20,15 +20,18 @@ namespace ConsumerService.EventProcessing
 
         public void ProcessEvent(string message)
         {
-            var eventType = DetermineEvent(message);
-            switch (eventType)
-            {
-                case EventType.LocationPublished:
-                    convertToLocation(message);
-                    break;
-                default:
-                    break;
-            }
+            Console.WriteLine("--> Message Consumed");
+            Thread.Sleep(5);
+
+            // var eventType = DetermineEvent(message);
+            // switch (eventType)
+            // {
+            //     case EventType.LocationPublished:
+            //         convertToLocation(message);
+            //         break;
+            //     default:
+            //         break;
+            // }
 
         }
 
